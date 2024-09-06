@@ -1,5 +1,5 @@
-from flask import Flask, render_template, send_from_directory, request, abort
-from werkzeug.utils import safe_join
+from flask import Flask, render_template, send_from_directory, request, abort, redirect, url_for
+from werkzeug.utils import safe_join, secure_filename
 import os
 from datetime import datetime
 import math
@@ -74,7 +74,7 @@ def list_files(subpath=''):
     start = (page - 1) * items_per_page
     end = start + items_per_page
 
-    # 获取文件信息并排序
+    # 获取件信息并排序
     files_info = get_file_info(folder_path)
     sort_files(files_info, sort_by, order)
     
@@ -111,6 +111,51 @@ def download_file(filepath):
     # 使用 send_from_directory 发送文件
     return send_from_directory(folder_path, filename, as_attachment=True)
 
+# Add this new route to handle file uploads
+@app.route('/upload/', defaults={'subpath': ''}, methods=['GET', 'POST'])
+@app.route('/upload/<path:subpath>', methods=['GET', 'POST'])
+def upload_file(subpath):
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return redirect(url_for('list_files', subpath=subpath))
+        
+        file = request.files['file']
+        if file.filename == '':
+            return redirect(url_for('list_files', subpath=subpath))
+        
+        if file:
+            filename = secure_filename(file.filename)
+            upload_folder = os.path.join(app.config['ROOT_FOLDER'], subpath)
+            
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+            
+            file_path = get_unique_filename(upload_folder, filename)
+            file.save(file_path)
+        
+        return redirect(url_for('list_files', subpath=subpath))
+    
+    # 如果是 GET 请求，重定向到文件列表页面
+    return redirect(url_for('list_files', subpath=subpath))
+
+def get_unique_filename(upload_folder, filename):
+    name, ext = os.path.splitext(filename)
+    counter = 1
+    file_path = os.path.join(upload_folder, filename)
+    
+    while os.path.exists(file_path):
+        new_filename = f"{name}_{counter}{ext}"
+        file_path = os.path.join(upload_folder, new_filename)
+        counter += 1
+    
+    return file_path
+
+# @app.before_request
+# def log_request_info():
+#     app.logger.debug('Headers: %s', request.headers)
+#     app.logger.debug('Body: %s', request.get_data())
+#     app.logger.debug('Method: %s', request.method)
+#     app.logger.debug('URL: %s', request.url)
 
 if __name__ == '__main__':
     # 使用 argparse 解析命令行参数  
@@ -124,5 +169,8 @@ if __name__ == '__main__':
     app.config['ROOT_FOLDER'] = args.root
     print(f"Serving files from: {app.config['ROOT_FOLDER']}") 
 
+    # Add this line to enable file uploads
+    app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2 GB limit
+
     # 启动 Flask 应用
-    app.run(host=args.host, port=args.port, debug=True)
+    app.run(host=args.host, port=args.port, debug=False)
