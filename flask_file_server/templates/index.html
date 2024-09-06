@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Browser</title>
+
+    <style>
+        h1, h2, h3, h4 {
+        font-family: arial, sans-serif;
+        }
+        table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+        }
+        td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+        }
+        tr:nth-child(even) {
+        background-color: #dddddd;
+        }
+    </style>
 </head>
 <body>
     <h1>File Browser</h1>
@@ -21,7 +40,7 @@
     <!-- Navigation for sorting and pagination -->
     <div>
         <h2>Contents of: {{ subpath or 'Root' }}</h2>
-        <table border="1">
+        <table style="width:100%;text-align: left">
             <thead>
                 <tr>
                     <th><a href="?sort_by=name&order={{ next_order }}&page={{ page }}">Name</a></th>
